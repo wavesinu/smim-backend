@@ -14,6 +14,10 @@ import org.springframework.stereotype.Service;
 
 import java.util.concurrent.TimeUnit;
 
+/**
+ * 인증 서비스
+ * JWT 토큰 갱신 및 로그아웃 기능을 제공합니다.
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -26,6 +30,13 @@ public class AuthService {
     @Value("${jwt.refresh-token-expiration}")
     private long refreshTokenExpiration;
 
+    /**
+     * Access Token 갱신
+     * Refresh Token을 검증하고 새로운 Access Token과 Refresh Token을 발급합니다.
+     * @param refreshToken 클라이언트의 Refresh Token
+     * @return 새로운 Access Token과 Refresh Token
+     * @throws TokenValidationException Refresh Token이 유효하지 않은 경우
+     */
     public TokenResponse refreshAccessToken(String refreshToken) {
         // Refresh Token 검증
         if (!tokenProvider.validateToken(refreshToken)) {
@@ -65,6 +76,11 @@ public class AuthService {
         return new TokenResponse(newAccessToken, newRefreshToken);
     }
 
+    /**
+     * 로그아웃
+     * Redis에 저장된 Refresh Token을 삭제하여 토큰을 무효화합니다.
+     * @param userId 로그아웃할 사용자 ID
+     */
     public void logout(Long userId) {
         String key = "refresh_token:" + userId;
         redisTemplate.delete(key);
