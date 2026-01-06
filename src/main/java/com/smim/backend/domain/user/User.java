@@ -1,30 +1,56 @@
 package com.smim.backend.domain.user;
 
+import com.smim.backend.domain.BaseEntity;
 import jakarta.persistence.*;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
-
-import java.time.LocalDateTime;
 
 @Entity
 @Getter
 @NoArgsConstructor
 @Table(name = "users")
-@EntityListeners(AuditingEntityListener.class)
-public class User {
+public class User extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // TODO: Add user fields (email, nickname, provider, etc.)
+    @Column(nullable = false, unique = true)
+    private String email;
 
-    @CreatedDate
-    private LocalDateTime createdAt;
+    @Column(nullable = false)
+    private String name;
 
-    @LastModifiedDate
-    private LocalDateTime updatedAt;
+    private String profileImage;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private Provider provider;
+
+    private String providerId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private Role role;
+
+    // 향후 이메일 로그인을 위한 필드 (nullable)
+    private String password;
+
+    @Builder
+    public User(String email, String name, String profileImage,
+                Provider provider, String providerId, Role role) {
+        this.email = email;
+        this.name = name;
+        this.profileImage = profileImage;
+        this.provider = provider;
+        this.providerId = providerId;
+        this.role = role;
+    }
+
+    public User update(String name, String profileImage) {
+        this.name = name;
+        this.profileImage = profileImage;
+        return this;
+    }
 }
