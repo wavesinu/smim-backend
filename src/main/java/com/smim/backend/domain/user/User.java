@@ -14,15 +14,17 @@ import lombok.NoArgsConstructor;
 @Entity
 @Getter
 @NoArgsConstructor
-@Table(name = "users")
+@Table(name = "users", uniqueConstraints = {
+    @UniqueConstraint(name = "uk_provider_provider_id", columnNames = {"provider", "providerId"})
+})
 public class User extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** 이메일 주소 (고유값, 필수) */
-    @Column(nullable = false, unique = true)
+    /** 이메일 주소 (선택, 소셜 로그인 제공자 정책에 따라 제공 여부 결정) */
+    @Column(unique = true)
     private String email;
 
     /** 사용자 이름 (필수) */

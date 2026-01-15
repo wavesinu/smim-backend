@@ -8,10 +8,7 @@ import java.util.Map;
 public class OAuth2UserInfoFactory {
 
     public static OAuth2UserInfo getOAuth2UserInfo(String registrationId, Map<String, Object> attributes) {
-        // 현재 지원하는 OAuth2 제공자(GOOGLE, KAKAO)
-        if (registrationId.equalsIgnoreCase(Provider.GOOGLE.name())) {
-            return new GoogleOAuth2UserInfo(attributes);
-        } else if (registrationId.equalsIgnoreCase(Provider.KAKAO.name())) {
+        if (registrationId.equalsIgnoreCase(Provider.KAKAO.name())) {
             return new KakaoOAuth2UserInfo(attributes);
         } else {
             throw new OAuth2AuthenticationProcessingException("Unsupported provider: " + registrationId);

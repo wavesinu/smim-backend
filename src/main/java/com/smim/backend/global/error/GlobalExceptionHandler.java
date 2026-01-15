@@ -9,7 +9,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Void> handleException(Exception e) {
-        // TODO: Implement error response entity structure
+
         return ResponseEntity.internalServerError().build();
     }
 }
