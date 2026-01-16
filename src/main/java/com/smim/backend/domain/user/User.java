@@ -1,30 +1,85 @@
 package com.smim.backend.domain.user;
 
+import com.smim.backend.domain.BaseEntity;
 import jakarta.persistence.*;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import java.time.LocalDateTime;
-
+/**
+ * 사용자 엔티티
+ * OAuth2 소셜 로그인 사용자 정보를 저장합니다.
+ * BaseEntity를 상속받아 생성일시/수정일시가 자동으로 관리됩니다.
+ */
 @Entity
 @Getter
 @NoArgsConstructor
-@Table(name = "users")
-@EntityListeners(AuditingEntityListener.class)
-public class User {
+@Table(name = "users", uniqueConstraints = {
+    @UniqueConstraint(name = "uk_provider_provider_id", columnNames = {"provider", "providerId"})
+})
+public class User extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // TODO: Add user fields (email, nickname, provider, etc.)
+    /** 이메일 주소 (선택, 소셜 로그인 제공자 정책에 따라 제공 여부 결정) */
+    @Column(unique = true)
+    private String email;
 
-    @CreatedDate
-    private LocalDateTime createdAt;
+    /** 사용자 이름 (필수) */
+    @Column(nullable = false)
+    private String name;
 
-    @LastModifiedDate
-    private LocalDateTime updatedAt;
+    /** 프로필 이미지 URL */
+    private String profileImage;
+
+    /** OAuth2 제공자 (GOOGLE, KAKAO, etc.) */
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private Provider provider;
+
+    /** OAuth2 제공자에서 제공하는 사용자 고유 ID */
+    private String providerId;
+
+    /** 사용자 권한 (USER, ADMIN) */
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private Role role;
+
+    /** 향후 이메일 로그인을 위한 비밀번호 필드 (현재는 nullable) */
+    private String password;
+
+    /**
+     * User 엔티티 생성자
+     * @param email 이메일 주소
+     * @param name 사용자 이름
+     * @param profileImage 프로필 이미지 URL
+     * @param provider OAuth2 제공자
+     * @param providerId 제공자별 사용자 고유 ID
+     * @param role 사용자 권한
+     */
+    @Builder
+    public User(String email, String name, String profileImage,
+                Provider provider, String providerId, Role role) {
+        this.email = email;
+        this.name = name;
+        this.profileImage = profileImage;
+        this.provider = provider;
+        this.providerId = providerId;
+        this.role = role;
+    }
+
+    /**
+     * 사용자 정보 업데이트
+     * OAuth2 로그인 시 사용자 정보가 변경되었을 때 업데이트합니다.
+     * @param name 새로운 이름
+     * @param profileImage 새로운 프로필 이미지 URL
+     * @return 업데이트된 User 엔티티
+     */
+    public User update(String name, String profileImage) {
+        this.name = name;
+        this.profileImage = profileImage;
+        return this;
+    }
 }
