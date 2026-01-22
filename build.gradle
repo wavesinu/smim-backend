@@ -33,7 +33,8 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 
 	// Database Driver
-	runtimeOnly 'com.h2database:h2'
+	runtimeOnly 'org.postgresql:postgresql'
+	testRuntimeOnly 'com.h2database:h2'
 
 	// Security (JWT)
 	implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
@@ -57,4 +58,9 @@ dependencies {
 
 tasks.named('test') {
 	useJUnitPlatform()
+	testLogging {
+		events "passed", "skipped", "failed"
+		showStandardStreams = true
+		exceptionFormat "full"
+	}
 }
