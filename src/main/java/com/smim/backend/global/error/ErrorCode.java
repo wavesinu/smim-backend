@@ -28,7 +28,12 @@ public enum ErrorCode implements ResultCode {
     USER_NOT_FOUND("US001", "사용자를 찾을 수 없습니다.", HttpStatus.NOT_FOUND),
     DUPLICATE_EMAIL("US002", "이미 사용 중인 이메일입니다.", HttpStatus.CONFLICT),
     DUPLICATE_NICKNAME("US003", "이미 사용 중인 닉네임입니다.", HttpStatus.CONFLICT),
-    INVALID_USER_STATUS("US004", "유효하지 않은 사용자 상태입니다.", HttpStatus.BAD_REQUEST);
+    INVALID_USER_STATUS("US004", "유효하지 않은 사용자 상태입니다.", HttpStatus.BAD_REQUEST),
+
+    // 아티클 에러 (AR: Article)
+    INVALID_URL("AR001", "유효하지 않은 URL입니다.", HttpStatus.BAD_REQUEST),
+    CRAWLING_FAILED("AR002", "웹 페이지 크롤링에 실패했습니다.", HttpStatus.BAD_REQUEST),
+    ARTICLE_NOT_FOUND("AR003", "아티클을 찾을 수 없습니다.", HttpStatus.NOT_FOUND);
 
     private final String code;
     private final String message;

@@ -1,22 +1,22 @@
 spring:
   application:
-    name: smim-backend
+    name: smim-backend-test
 
   security:
     oauth2:
       client:
         registration:
           google:
-            client-id: ${GOOGLE_CLIENT_ID:google-client-id}
-            client-secret: ${GOOGLE_CLIENT_SECRET:google-client-secret}
+            client-id: test-google-client-id
+            client-secret: test-google-client-secret
             scope:
               - email
               - profile
             redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
 
           kakao:
-            client-id: ${KAKAO_CLIENT_ID}
-            client-secret: ${KAKAO_CLIENT_SECRET}
+            client-id: test-kakao-client-id
+            client-secret: test-kakao-client-secret
             client-authentication-method: client_secret_post
             authorization-grant-type: authorization_code
             redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
@@ -34,48 +34,50 @@ spring:
             user-name-attribute: id
 
   datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5433}/${DB_NAME:smim_dev}
-    username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:postgres}
-    driver-class-name: org.postgresql.Driver
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
 
   h2:
     console:
       enabled: false
 
   jpa:
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
-      ddl-auto: update
+      ddl-auto: create-drop
     show-sql: true
     properties:
       hibernate:
         format_sql: true
-        jdbc:
-          lob:
-            non_contextual_creation: true
 
   data:
     redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
-      # Redis가 없어도 앱이 죽지 않도록 설정 (선택 사항이나, 기본 Redis 설정을 유지하되 연결 실패 로그만 뜨게 둠)
+      host: localhost
+      port: 6379
+
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
 
 jwt:
-  secret: ${JWT_SECRET:secret-key-must-be-very-long-and-secure-for-development-purposes-only}
-  access-token-expiration: 3600000 
+  secret: test-secret-key-must-be-very-long-and-secure-for-testing-purposes-only
+  access-token-expiration: 3600000
   refresh-token-expiration: 604800000
 
 gemini:
-  api-key: ${GEMINI_API_KEY:dummy-key}
+  api-key: test-dummy-key
   model: gemini-2.5-flash
   timeout: 30000
 
 app:
   oauth2:
     authorized-redirect-uris:
-      - ${FRONTEND_URL:http://localhost:5173/oauth2/redirect}
+      - http://localhost:5173/oauth2/redirect
 
 logging:
   level:
-    com.smim.backend: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE

@@ -4,9 +4,11 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.springframework.http.HttpStatus;
 
+import com.smim.backend.global.common.response.ResultCode;
+
 @Getter
 @AllArgsConstructor
-public enum GlobalErrorCode implements ErrorCode {
+public enum GlobalErrorCode implements ResultCode {
     // Common
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "G001", "Internal Server Error"),
     INVALID_INPUT_VALUE(HttpStatus.BAD_REQUEST, "G002", "Invalid Input Value"),

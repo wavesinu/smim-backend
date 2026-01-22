@@ -35,3 +35,11 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### Local Configuration ###
+src/main/resources/application-local.yaml
+src/test/resources/application-test.yaml
+src/test/resources/application-integration.yaml
+
+### Claude ###
+.claude/skills/
