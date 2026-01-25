@@ -1,6 +1,6 @@
 package com.smim.backend.domain.user;
 
-import com.smim.backend.domain.BaseEntity;
+import com.smim.backend.domain.common.BaseEntity;
 import jakarta.persistence.*;
 import lombok.Builder;
 import lombok.Getter;

@@ -7,7 +7,13 @@ import com.smim.backend.domain.user.Provider;
 import com.smim.backend.domain.user.Role;
 import com.smim.backend.domain.user.User;
 import com.smim.backend.domain.user.UserRepository;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
@@ -17,11 +23,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * PostgreSQL DB를 사용한 실제 통합 테스트
  * 데이터가 실제 DB에 저장되는지 확인합니다.
+ *
+ * 이 테스트는 실제 PostgreSQL 데이터베이스가 필요하므로
+ * 기본 빌드에서 제외됩니다. 수동으로 실행하세요:
+ * ./gradlew test --tests "*PostgresIntegrationTest"
  */
 @SpringBootTest
 @ActiveProfiles("integration")
 @DisplayName("ArticleService PostgreSQL 통합 테스트")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@Disabled("PostgreSQL 데이터베이스가 필요한 테스트입니다. 수동으로 실행하세요.")
 class ArticleServicePostgresIntegrationTest {
 
     @Autowired

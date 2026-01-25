@@ -2,6 +2,7 @@ package com.smim.backend.global.auth.oauth2;
 
 import com.smim.backend.global.auth.UserPrincipal;
 import com.smim.backend.global.auth.jwt.JwtTokenProvider;
+import com.smim.backend.global.config.AppProperties;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -31,9 +33,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
 
     private final JwtTokenProvider tokenProvider;
     private final RedisTemplate<String, String> redisTemplate;
-
-    @Value("${app.oauth2.authorized-redirect-uris}")
-    private String[] authorizedRedirectUris;
+    private final AppProperties appProperties;
 
     @Value("${jwt.refresh-token-expiration}")
     private long refreshTokenExpiration;
@@ -65,8 +65,9 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
             HttpServletResponse response,
             Authentication authentication
     ) {
+        List<String> authorizedRedirectUris = appProperties.getOauth2().getAuthorizedRedirectUris();
         // TODO: 리다이렉트 URI 검증 로직 추가
-        String targetUrl = authorizedRedirectUris[0]; // 기본값 사용
+        String targetUrl = authorizedRedirectUris.get(0); // 기본값 사용
 
         UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
 

@@ -7,7 +7,6 @@ import com.smim.backend.domain.article.dto.ArticleResponse;
 import com.smim.backend.domain.article.dto.ArticleVocabularyResponse;
 import com.smim.backend.domain.user.User;
 import com.smim.backend.domain.user.UserRepository;
-import com.smim.backend.global.ai.GeminiService;
 import com.smim.backend.global.error.ErrorCode;
 import com.smim.backend.global.error.exception.CrawlingFailedException;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +28,7 @@ public class ArticleService {
     private final ArticleRepository articleRepository;
     private final UserRepository userRepository;
     private final CrawlingService crawlingService;
-    private final GeminiService geminiService;
+    private final VocabularyExtractorService vocabularyExtractorService;
 
     /**
      * URL을 크롤링하여 아티클을 저장합니다.
@@ -84,8 +83,8 @@ public class ArticleService {
             Article article = articleRepository.findById(articleId)
                     .orElseThrow(() -> new IllegalArgumentException("아티클을 찾을 수 없습니다."));
 
-            // Gemini를 이용한 단어 추출 (최대 10개)
-            List<ArticleVocabularyResponse> vocabularyList = geminiService.extractVocabulary(
+            // AI를 이용한 단어 추출 (최대 10개)
+            List<ArticleVocabularyResponse> vocabularyList = vocabularyExtractorService.extractVocabulary(
                     article.getContent(),
                     10
             );

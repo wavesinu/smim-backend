@@ -1,10 +1,7 @@
 package com.smim.backend.global.auth.oauth2;
 
 import com.smim.backend.domain.user.Provider;
-import com.smim.backend.domain.user.Role;
-import com.smim.backend.domain.user.User;
-import com.smim.backend.domain.user.UserRepository;
-import com.smim.backend.global.auth.UserPrincipal;
+import com.smim.backend.domain.user.service.UserPrincipalService;
 import com.smim.backend.global.auth.oauth2.user.OAuth2UserInfo;
 import com.smim.backend.global.auth.oauth2.user.OAuth2UserInfoFactory;
 import com.smim.backend.global.error.exception.OAuth2AuthenticationProcessingException;
@@ -15,9 +12,6 @@ import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
-
-import java.util.Optional;
 
 /**
  * 커스텀 OAuth2 사용자 서비스
@@ -30,7 +24,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
-    private final UserRepository userRepository;
+    private final UserPrincipalService userPrincipalService;
 
     /**
      * OAuth2 사용자 정보 로드
@@ -59,36 +53,6 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         );
 
         Provider provider = Provider.valueOf(registrationId.toUpperCase());
-        User user = registerOrUpdateUser(oAuth2UserInfo, provider);
-
-        return UserPrincipal.create(user);
-    }
-
-    /**
-     * 사용자 등록 또는 업데이트
-     * providerId로 기존 사용자를 찾아 업데이트하거나, 없으면 신규 등록합니다.
-     */
-    private User registerOrUpdateUser(OAuth2UserInfo oAuth2UserInfo, Provider provider) {
-        Optional<User> userOptional = userRepository.findByProviderAndProviderId(
-                provider,
-                oAuth2UserInfo.getProviderId()
-        );
-
-        User user;
-        if (userOptional.isPresent()) {
-            user = userOptional.get();
-            user = user.update(oAuth2UserInfo.getName(), oAuth2UserInfo.getImageUrl());
-        } else {
-            user = User.builder()
-                    .email(oAuth2UserInfo.getEmail())
-                    .name(oAuth2UserInfo.getName())
-                    .profileImage(oAuth2UserInfo.getImageUrl())
-                    .provider(provider)
-                    .providerId(oAuth2UserInfo.getProviderId())
-                    .role(Role.USER)
-                    .build();
-        }
-
-        return userRepository.save(user);
+        return userPrincipalService.registerOrUpdateOAuth2User(oAuth2UserInfo, provider);
     }
 }
