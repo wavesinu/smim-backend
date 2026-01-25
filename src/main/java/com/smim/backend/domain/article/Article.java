@@ -1,6 +1,6 @@
 package com.smim.backend.domain.article;
 
-import com.smim.backend.domain.BaseEntity;
+import com.smim.backend.domain.common.BaseEntity;
 import com.smim.backend.domain.user.User;
 import jakarta.persistence.*;
 import lombok.AccessLevel;

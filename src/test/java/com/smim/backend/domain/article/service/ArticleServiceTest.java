@@ -41,6 +41,9 @@ class ArticleServiceTest {
     @Mock
     private CrawlingService crawlingService;
 
+    @Mock
+    private VocabularyExtractorService vocabularyExtractorService;
+
     @Test
     @DisplayName("아티클 크롤링 및 저장 성공")
     void crawlAndSaveArticle_Success() {

@@ -1,7 +1,6 @@
 package com.smim.backend.global.auth.jwt;
 
-import com.smim.backend.domain.user.User;
-import com.smim.backend.domain.user.UserRepository;
+import com.smim.backend.domain.user.service.UserPrincipalService;
 import com.smim.backend.global.auth.UserPrincipal;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -30,7 +29,7 @@ import java.io.IOException;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider tokenProvider;
-    private final UserRepository userRepository;
+    private final UserPrincipalService userPrincipalService;
 
     /**
      * 요청마다 한 번씩 실행되는 필터 메서드
@@ -48,10 +47,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (StringUtils.hasText(jwt) && tokenProvider.validateToken(jwt)) {
                 Long userId = tokenProvider.getUserIdFromToken(jwt);
 
-                User user = userRepository.findById(userId)
-                        .orElseThrow(() -> new RuntimeException("User not found"));
-
-                UserPrincipal userPrincipal = UserPrincipal.create(user);
+                UserPrincipal userPrincipal = userPrincipalService.loadUserPrincipalById(userId);
 
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(

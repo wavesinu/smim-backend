@@ -46,6 +46,9 @@ dependencies {
 
 	// Crawling
 	implementation 'org.jsoup:jsoup:1.15.3'
+
+	// JSON Processing
+	implementation 'com.fasterxml.jackson.core:jackson-databind'
 	
 	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
