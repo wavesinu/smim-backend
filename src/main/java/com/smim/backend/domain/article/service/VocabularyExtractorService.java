@@ -21,7 +21,7 @@ import java.util.List;
 public class VocabularyExtractorService {
 
     private final AiService aiService;
-    private final ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper; // 역직렬화를 위한 Jackson ObjectMapper
 
     public VocabularyExtractorService(AiService aiService) {
         this.aiService = aiService;
@@ -107,7 +107,8 @@ public class VocabularyExtractorService {
             // JSON 배열 부분만 추출 (마크다운 코드 블록 제거)
             String jsonArray = extractJsonArray(textContent);
 
-            return objectMapper.readValue(jsonArray, new TypeReference<>() {});
+            return objectMapper.readValue(jsonArray, new TypeReference<>() {
+            });
 
         } catch (JsonProcessingException e) {
             log.error("AI 응답 파싱 실패: {}", response, e);

@@ -44,6 +44,7 @@ public class ArticleVocabulary {
     /**
      * Article과의 연관관계 설정
      * Article.addVocabulary() 또는 Article.updateVocabulary()에서 호출됩니다.
+     * 
      * @param article 연관된 아티클
      */
     void setArticle(Article article) {

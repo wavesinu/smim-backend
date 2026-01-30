@@ -7,7 +7,6 @@ import com.smim.backend.domain.article.dto.ArticleResponse;
 import com.smim.backend.domain.article.dto.ArticleVocabularyResponse;
 import com.smim.backend.domain.user.User;
 import com.smim.backend.domain.user.UserRepository;
-import com.smim.backend.global.error.ErrorCode;
 import com.smim.backend.global.error.exception.CrawlingFailedException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -45,19 +44,19 @@ public class ArticleService {
 
         // 사용자 조회
         User user = userRepository.findById(userId)
-            .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
         // 웹 페이지 크롤링
         CrawlingService.CrawledArticle crawled = crawlingService.crawl(url);
 
         // Article 엔티티 생성 및 저장
         Article article = Article.builder()
-            .user(user)
-            .title(crawled.getTitle())
-            .content(crawled.getContent())
-            .originalUrl(url)
-            .sourceDomain(crawled.getDomain())
-            .build();
+                .user(user)
+                .title(crawled.getTitle())
+                .content(crawled.getContent())
+                .originalUrl(url)
+                .sourceDomain(crawled.getDomain())
+                .build();
 
         Article savedArticle = articleRepository.save(article);
         log.info("아티클 저장 완료 - ArticleId: {}", savedArticle.getId());
@@ -86,8 +85,7 @@ public class ArticleService {
             // AI를 이용한 단어 추출 (최대 10개)
             List<ArticleVocabularyResponse> vocabularyList = vocabularyExtractorService.extractVocabulary(
                     article.getContent(),
-                    10
-            );
+                    10);
 
             // ArticleVocabulary 엔티티로 변환 및 저장
             for (ArticleVocabularyResponse vocabResponse : vocabularyList) {

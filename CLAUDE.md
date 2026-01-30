@@ -1,6 +1,8 @@
 # SMIM Backend
 
-Spring Boot 기반의 백엔드 애플리케이션으로, 뉴스 기사 크롤링 및 AI 요약 기능을 제공합니다.
+**SMIM** (Smart Media Insight Manager)
+
+Spring Boot 기반의 영어 학습 지원 백엔드 애플리케이션입니다. 뉴스 기사 및 웹 글의 URL을 입력하면 본문을 자동으로 크롤링하고, Google Gemini AI를 활용하여 영어 학습에 유용한 추천 단어와 문장을 추출합니다. 사용자는 추출된 단어를 개인 단어장에 저장하고, 커스텀 단어장을 생성하여 체계적으로 어휘를 관리할 수 있습니다.
 
 ## Tech Stack
 
@@ -22,7 +24,11 @@ src/main/java/com/smim/backend/
 │   │   ├── api/               # Controller
 │   │   ├── dto/               # Request/Response DTO
 │   │   └── service/           # Service 레이어
-│   └── user/                  # 사용자 도메인
+│   ├── user/                  # 사용자 도메인
+│   │   ├── api/
+│   │   ├── dto/
+│   │   └── service/
+│   └── vocabularybook/        # 단어장 도메인 (신규)
 │       ├── api/
 │       ├── dto/
 │       └── service/
@@ -33,6 +39,7 @@ src/main/java/com/smim/backend/
 │   │   └── oauth2/            # OAuth2 처리
 │   ├── common/                # 공통 응답 포맷
 │   ├── config/                # 설정 클래스
+│   ├── ratelimit/             # Rate Limiting (신규)
 │   └── error/                 # 예외 처리
 │       └── exception/         # 커스텀 예외
 ```
@@ -53,18 +60,98 @@ src/main/java/com/smim/backend/
 ./gradlew clean build
 ```
 
+## Core Features
+
+### 구현 완료
+- OAuth2 소셜 로그인 (Google, Kakao) + JWT 인증/인가
+- URL 크롤링 (Jsoup) 및 Article 저장
+- 비동기 AI 단어 추출 (Google Gemini API)
+- User, Article, ArticleVocabulary 엔티티 및 기본 API
+- 에러 코드 체계 (CO, AU, US, AR, VB prefix)
+- Redis 캐시 인프라, CORS 설정, 비동기 처리
+
+### 개발 예정 (PRD 기준)
+- **P0 (필수)**:
+  - 일반 로그인 (이메일 + 비밀번호)
+  - 일일 사용량 제한 (Rate Limiting) - USER: 5/day, ADMIN: 무제한
+  - 단어 선택/전체 저장
+  - 커스텀 단어장 (Vocabulary Book) CRUD
+- **P1 (중요)**:
+  - 단어 재추출 기능
+  - 난이도별 아티클 추천 (CEFR 기반)
+  - 학습/복습 기능 (Spaced Repetition)
+  - 복습 알림 (이메일, 카카오톡)
+
+## Domain Entity Relationship
+
+```
+┌──────────┐       ┌─────────────┐       ┌─────────────────────┐
+│   User   │1────N │   Article   │1────N │  ArticleVocabulary  │
+│          │       │             │       │  (AI 추출 결과)       │
+└──────────┘       └─────────────┘       └─────────────────────┘
+     │                                              │
+     │1                                             │ (참조)
+     │                                              ▼
+     │N          ┌─────────────────┐       ┌─────────────────┐
+     └──────────►│ VocabularyBook  │1────N │ VocabularyEntry  │
+                 │ (커스텀 단어장)   │       │ (저장된 단어)      │
+                 └─────────────────┘       └─────────────────┘
+```
+
+**엔티티 설명**:
+- `User`: 사용자 (Role: USER, ADMIN / Provider: GOOGLE, KAKAO, LOCAL)
+- `Article`: 크롤링된 뉴스/웹 글
+- `ArticleVocabulary`: AI가 추출한 단어 (Article 종속, 읽기 전용)
+- `VocabularyBook`: 사용자 커스텀 단어장 (최초 가입 시 "기본 단어장" 자동 생성, 최대 20개)
+- `VocabularyEntry`: 단어장에 저장된 개별 단어
+
+## User Roles & Permissions
+
+| 역할 | 코드 | 일일 크롤링/재추출 한도 | 설명 |
+|------|------|------------------------|------|
+| 일반 사용자 | `USER` (`ROLE_USER`) | 5회 | 기본 사용자 |
+| 관리자 | `ADMIN` (`ROLE_ADMIN`) | 무제한 | 서비스 운영 및 관리 권한 |
+
+**Provider**: `GOOGLE`, `KAKAO`, `LOCAL` (일반 로그인)
+
 ## API Endpoints
 
-### Article
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
-| POST | `/api/articles/crawl` | URL 크롤링 및 아티클 생성 | Required |
-
-### Auth (OAuth2)
+### Auth
 | Method | Endpoint | Description |
 |--------|----------|-------------|
+| POST | `/api/auth/signup` | 이메일 회원가입 (신규) |
+| POST | `/api/auth/login` | 이메일 로그인 (신규) |
+| POST | `/api/auth/password/reset-request` | 비밀번호 재설정 요청 (신규) |
+| POST | `/api/auth/password/reset` | 비밀번호 재설정 (신규) |
 | GET | `/oauth2/authorize/{provider}` | OAuth2 인증 시작 (google, kakao) |
 | GET | `/login/oauth2/code/{provider}` | OAuth2 콜백 |
+
+### Article
+| Method | Endpoint | Description | Auth | Rate Limit |
+|--------|----------|-------------|------|------------|
+| POST | `/api/articles/crawl` | URL 크롤링 및 아티클 생성 | Required | USER: 5/day |
+| POST | `/api/articles/{id}/re-extract` | 단어 재추출 요청 (신규) | Required | USER: 5/day |
+| GET | `/api/articles` | 내 아티클 목록 조회 (신규) | Required | - |
+| GET | `/api/articles/{id}` | 아티클 상세 조회 (신규) | Required | - |
+| DELETE | `/api/articles/{id}` | 아티클 삭제 (신규) | Required | - |
+
+### Vocabulary Book (신규)
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| POST | `/api/vocabulary-books` | 단어장 생성 | Required |
+| GET | `/api/vocabulary-books` | 내 단어장 목록 조회 | Required |
+| GET | `/api/vocabulary-books/{bookId}` | 단어장 상세 조회 (단어 목록 포함) | Required |
+| PUT | `/api/vocabulary-books/{bookId}` | 단어장 정보 수정 | Required |
+| DELETE | `/api/vocabulary-books/{bookId}` | 단어장 삭제 | Required |
+
+### Vocabulary Entry (신규)
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| POST | `/api/vocabulary-books/{bookId}/words/selective` | 선택 단어 저장 | Required |
+| POST | `/api/vocabulary-books/{bookId}/words/bulk` | 전체 단어 저장 | Required |
+| POST | `/api/vocabulary-books/{bookId}/words` | 수동 단어 추가 | Required |
+| GET | `/api/vocabulary-books/{bookId}/words` | 단어 목록 조회 (Pagination) | Required |
+| DELETE | `/api/vocabulary-books/{bookId}/words/{wordId}` | 단어 삭제 | Required |
 
 ## Code Conventions
 
@@ -99,9 +186,20 @@ ApiResponse.fail(ErrorCode.INVALID_REQUEST, "커스텀 메시지");
 | Prefix | Domain | Example |
 |--------|--------|---------|
 | `CO` | Common (공통) | `CO001`, `CO002` |
-| `AU` | Auth (인증) | `AU001`, `AU002` |
+| `AU` | Auth (인증) | `AU001`, `AU002`, `AU006`, `AU007` |
 | `US` | User (사용자) | `US001`, `US002` |
-| `AR` | Article (아티클) | `AR001`, `AR002` |
+| `AR` | Article (아티클) | `AR001`, `AR002`, `AR004`, `AR005` |
+| `VB` | Vocabulary Book (단어장) | `VB001`, `VB002`, `VB003`, `VB004` |
+
+**주요 에러 코드**:
+- `AU006`: 잘못된 이메일 또는 비밀번호 (401)
+- `AU007`: 이메일 인증이 필요합니다 (403)
+- `AR004`: 일일 사용 한도 초과 (429)
+- `AR005`: 단어 추출이 진행 중입니다 (409)
+- `VB001`: 단어장을 찾을 수 없습니다 (404)
+- `VB002`: 단어장 생성 한도 초과 (400)
+- `VB003`: 기본 단어장은 삭제할 수 없습니다 (400)
+- `VB004`: 이미 단어장에 존재하는 단어입니다 (409)
 
 새 도메인 추가 시 2글자 prefix를 정의하고 `ErrorCode` enum에 추가합니다.
 
@@ -136,6 +234,89 @@ public class MyEntity extends BaseEntity {          // BaseEntity 상속 필수
 - `@NoArgsConstructor(access = AccessLevel.PROTECTED)`: 무분별한 객체 생성 방지
 - `@Builder`: 명시적 객체 생성
 - Setter 사용 금지: 의미있는 비즈니스 메서드로 상태 변경
+
+### DTO 작성 규칙
+
+**Response DTO**: Record 사용 (권장)
+```java
+/**
+ * 조회 응답 DTO는 Record로 작성
+ * - 불변성 보장
+ * - 간결한 코드
+ * - equals/hashCode/toString 자동 생성
+ */
+public record ArticleResponse(
+    Long id,
+    String title,
+    String content,
+    String originalUrl,
+    String sourceDomain,
+    boolean isCompleted,
+    Instant createdAt,
+    int vocabularyCount
+) {
+    // static factory method 사용 가능
+    public static ArticleResponse from(Article article) {
+        return new ArticleResponse(
+            article.getId(),
+            article.getTitle(),
+            article.getContent(),
+            article.getOriginalUrl(),
+            article.getSourceDomain(),
+            article.isCompleted(),
+            article.getCreatedAt(),
+            article.getVocabularyList().size()
+        );
+    }
+}
+```
+
+**단순 Request DTO**: Record 사용 가능
+```java
+/**
+ * 단순한 요청 DTO (1-3개 필드, nested 객체 없음)
+ * - Jakarta Validation annotations 지원
+ * - Jackson deserialization 지원 (Spring Boot 3.0+)
+ */
+public record ArticleCrawlRequest(
+    @NotBlank(message = "URL은 필수입니다.")
+    @URL(message = "올바른 URL 형식이 아닙니다.")
+    @Size(max = 2000, message = "URL은 2000자를 초과할 수 없습니다.")
+    String url
+) {}
+```
+
+**복잡한 Request DTO**: 일반 클래스 사용
+```java
+/**
+ * 복잡한 요청 DTO는 일반 클래스 사용
+ * - 다수의 필드 (8개 이상)
+ * - Nested 객체 포함
+ * - Builder 패턴 필요
+ * - 조건부 Validation 필요
+ */
+@Getter
+@NoArgsConstructor
+@Builder
+@AllArgsConstructor
+public class ComplexRequest {
+    @NotBlank
+    private String field1;
+
+    @Valid
+    private NestedObject nested;
+
+    @Min(1)
+    private Integer count;
+
+    // 8개 이상의 필드...
+}
+```
+
+**DTO 선택 기준**:
+- ✅ **Response DTO → Record** (불변성, 간결성)
+- ✅ **단순 Request (1-3 필드) → Record** (간결성)
+- ⚠️ **복잡한 Request (8+ 필드, nested) → Class + @Builder** (가독성, 유연성)
 
 ### Exception Handling
 - 커스텀 예외는 `global/error/exception/` 패키지에 정의
@@ -206,6 +387,14 @@ test/.../domain/{domain-name}/
     ├── {Entity}ServiceTest.java     # Service 단위 테스트
     └── {Entity}ServiceIntegrationTest.java  # 통합 테스트
 ```
+
+**예시: VocabularyBook 도메인**
+- Entity: `VocabularyBook.java`, `VocabularyEntry.java`
+- Repository: `VocabularyBookRepository.java`, `VocabularyEntryRepository.java`
+- Controller: `VocabularyBookController.java`
+- Service: `VocabularyBookService.java`
+- DTO: `VocabularyBookCreateRequest.java`, `VocabularyBookResponse.java`, etc.
+- Error Code: `VB` prefix 추가 (`VB001`, `VB002`, ...)
 
 ## Environment Variables
 
