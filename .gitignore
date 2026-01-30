@@ -43,3 +43,4 @@ src/test/resources/application-integration.yaml
 
 ### Claude ###
 .claude/skills/
+/CLAUDE.md
