@@ -28,14 +28,14 @@ public class UserResponse {
 
     public static UserResponse from(User user) {
         // Builder 패턴을 사용하도록 수정
-        return new UserResponse(
-                user.getId(),
-                user.getEmail(),
-                user.getName(),
-                user.getProfileImage(),
-                user.getProvider(),
-                user.getRole(),
-                user.getCreatedAt()
-        );
+        return UserResponse.builder()
+                .id(user.getId())
+                .email(user.getEmail())
+                .name(user.getName())
+                .profileImage(user.getProfileImage())
+                .provider(user.getProvider())
+                .role(user.getRole())
+                .createdAt(user.getCreatedAt())
+                .build();
     }
 }
