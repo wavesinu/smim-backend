@@ -22,4 +22,15 @@ public class UpdateUserRequest {
     @Size(max = 500, message = "프로필 이미지 URL은 500자 이하여야 합니다")
     private String profileImage;
 
+    @Pattern(regexp = "^(A1|A2|B1|B2|C1|C2)$", message = "CEFR 레벨은 A1~C2 중 하나여야 합니다")
+    private String targetCefrLevel;
+
+    private Boolean notificationEnabled;
+
+    @Pattern(regexp = "^(EMAIL|KAKAO|BOTH|NONE)$", message = "알림 채널은 EMAIL, KAKAO, BOTH, NONE 중 하나여야 합니다")
+    private String notificationChannel;
+
+    @Pattern(regexp = "^([01]\\d|2[0-3]):(00|30)$", message = "알림 시간은 HH:mm 형식의 30분 단위여야 합니다")
+    private String notificationTime;
+
 }

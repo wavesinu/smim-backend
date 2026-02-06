@@ -1,5 +1,7 @@
 package com.smim.backend.domain.user.dto;
 
+import com.smim.backend.domain.user.CefrLevel;
+import com.smim.backend.domain.user.NotificationChannel;
 import com.smim.backend.domain.user.Provider;
 import com.smim.backend.domain.user.Role;
 import com.smim.backend.domain.user.User;
@@ -24,6 +26,10 @@ public class UserResponse {
     private String profileImage;
     private Provider provider;
     private Role role;
+    private CefrLevel targetCefrLevel;
+    private boolean notificationEnabled;
+    private NotificationChannel notificationChannel;
+    private String notificationTime;
     private Instant createdAt;
 
     public static UserResponse from(User user) {
@@ -35,6 +41,10 @@ public class UserResponse {
                 .profileImage(user.getProfileImage())
                 .provider(user.getProvider())
                 .role(user.getRole())
+                .targetCefrLevel(user.getTargetCefrLevel())
+                .notificationEnabled(user.isNotificationEnabled())
+                .notificationChannel(user.getNotificationChannel())
+                .notificationTime(user.getNotificationTime() == null ? null : user.getNotificationTime().toString())
                 .createdAt(user.getCreatedAt())
                 .build();
     }

@@ -6,6 +6,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalTime;
+
 /**
  * 사용자 엔티티
  * OAuth2 소셜 로그인 사용자 정보를 저장합니다.
@@ -50,6 +52,22 @@ public class User extends BaseEntity {
     /** 향후 이메일 로그인을 위한 비밀번호 필드 (현재는 nullable) */
     private String password;
 
+    /** 사용자 목표 CEFR 레벨 */
+    @Enumerated(EnumType.STRING)
+    private CefrLevel targetCefrLevel;
+
+    /** 알림 활성화 여부 */
+    @Column(nullable = false)
+    private boolean notificationEnabled;
+
+    /** 알림 수신 채널 */
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private NotificationChannel notificationChannel;
+
+    /** 알림 수신 시간 (HH:mm) */
+    private LocalTime notificationTime;
+
     /**
      * User 엔티티 생성자
      * @param email 이메일 주소
@@ -61,13 +79,21 @@ public class User extends BaseEntity {
      */
     @Builder
     public User(String email, String name, String profileImage,
-                Provider provider, String providerId, Role role) {
+                Provider provider, String providerId, Role role,
+                String password, CefrLevel targetCefrLevel,
+                Boolean notificationEnabled, NotificationChannel notificationChannel,
+                LocalTime notificationTime) {
         this.email = email;
         this.name = name;
         this.profileImage = profileImage;
         this.provider = provider;
         this.providerId = providerId;
         this.role = role;
+        this.password = password;
+        this.targetCefrLevel = targetCefrLevel;
+        this.notificationEnabled = notificationEnabled != null && notificationEnabled;
+        this.notificationChannel = notificationChannel == null ? NotificationChannel.NONE : notificationChannel;
+        this.notificationTime = notificationTime;
     }
 
     /**
@@ -81,5 +107,43 @@ public class User extends BaseEntity {
         this.name = name;
         this.profileImage = profileImage;
         return this;
+    }
+
+    /**
+     * 사용자 프로필 정보 부분 업데이트
+     */
+    public void updateProfile(
+            String name,
+            String profileImage,
+            CefrLevel targetCefrLevel,
+            Boolean notificationEnabled,
+            NotificationChannel notificationChannel,
+            LocalTime notificationTime
+    ) {
+        if (name != null) {
+            this.name = name;
+        }
+        if (profileImage != null) {
+            this.profileImage = profileImage;
+        }
+        if (targetCefrLevel != null) {
+            this.targetCefrLevel = targetCefrLevel;
+        }
+        if (notificationEnabled != null) {
+            this.notificationEnabled = notificationEnabled;
+        }
+        if (notificationChannel != null) {
+            this.notificationChannel = notificationChannel;
+        }
+        if (notificationTime != null) {
+            this.notificationTime = notificationTime;
+        }
+    }
+
+    /**
+     * CEFR 레벨 업데이트
+     */
+    public void updateCefrLevel(CefrLevel targetCefrLevel) {
+        this.targetCefrLevel = targetCefrLevel;
     }
 }
