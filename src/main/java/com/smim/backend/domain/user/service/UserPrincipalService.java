@@ -4,6 +4,7 @@ import com.smim.backend.domain.user.Provider;
 import com.smim.backend.domain.user.Role;
 import com.smim.backend.domain.user.User;
 import com.smim.backend.domain.user.UserRepository;
+import com.smim.backend.domain.vocabularybook.service.VocabularyBookService;
 import com.smim.backend.global.auth.UserPrincipal;
 import com.smim.backend.global.auth.oauth2.user.OAuth2UserInfo;
 import com.smim.backend.global.error.ErrorCode;
@@ -24,6 +25,7 @@ import java.util.Optional;
 public class UserPrincipalService {
 
     private final UserRepository userRepository;
+    private final VocabularyBookService vocabularyBookService;
 
     /**
      * 사용자 ID로 UserPrincipal 조회
@@ -56,6 +58,7 @@ public class UserPrincipalService {
         );
 
         User user;
+        boolean isNewUser = userOptional.isEmpty();
         if (userOptional.isPresent()) {
             user = userOptional.get();
             user = user.update(oAuth2UserInfo.getName(), oAuth2UserInfo.getImageUrl());
@@ -71,6 +74,9 @@ public class UserPrincipalService {
         }
 
         user = userRepository.save(user);
+        if (isNewUser) {
+            vocabularyBookService.createDefaultBook(user);
+        }
         return UserPrincipal.create(user);
     }
 }

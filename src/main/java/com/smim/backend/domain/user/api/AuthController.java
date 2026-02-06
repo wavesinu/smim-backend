@@ -1,11 +1,14 @@
 package com.smim.backend.domain.user.api;
 
+import com.smim.backend.domain.user.dto.EmailLoginRequest;
+import com.smim.backend.domain.user.dto.EmailSignupRequest;
 import com.smim.backend.domain.user.dto.TokenRefreshRequest;
 import com.smim.backend.domain.user.dto.TokenResponse;
 import com.smim.backend.domain.user.service.AuthService;
 import com.smim.backend.global.auth.UserPrincipal;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -23,6 +26,32 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final AuthService authService;
+
+    /**
+     * 이메일 회원가입
+     * @param request 회원가입 요청
+     * @return Access Token과 Refresh Token
+     */
+    @PostMapping("/signup")
+    public ResponseEntity<TokenResponse> signup(
+            @Valid @RequestBody EmailSignupRequest request
+    ) {
+        TokenResponse response = authService.signup(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    /**
+     * 이메일 로그인
+     * @param request 로그인 요청
+     * @return Access Token과 Refresh Token
+     */
+    @PostMapping("/login")
+    public ResponseEntity<TokenResponse> login(
+            @Valid @RequestBody EmailLoginRequest request
+    ) {
+        TokenResponse response = authService.login(request);
+        return ResponseEntity.ok(response);
+    }
 
     /**
      * Access Token 갱신
