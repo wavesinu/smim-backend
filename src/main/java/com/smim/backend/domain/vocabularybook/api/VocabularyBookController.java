@@ -10,6 +10,9 @@ import com.smim.backend.domain.vocabularybook.dto.VocabularyEntryResponse;
 import com.smim.backend.domain.vocabularybook.dto.VocabularyEntrySaveResponse;
 import com.smim.backend.domain.vocabularybook.dto.VocabularyEntryStatusResponse;
 import com.smim.backend.domain.vocabularybook.dto.VocabularyEntryStatusUpdateRequest;
+import com.smim.backend.domain.vocabularybook.dto.VocabularyWordManualCreateRequest;
+import com.smim.backend.domain.vocabularybook.dto.VocabularyWordsBulkRequest;
+import com.smim.backend.domain.vocabularybook.dto.VocabularyWordsSelectiveRequest;
 import com.smim.backend.domain.vocabularybook.service.VocabularyBookService;
 import com.smim.backend.global.auth.UserPrincipal;
 import com.smim.backend.global.common.response.ApiResponse;
@@ -30,6 +33,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -62,8 +66,27 @@ public class VocabularyBookController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+    @GetMapping("/{bookId}")
+    public ResponseEntity<ApiResponse<VocabularyBookResponse>> getVocabularyBook(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @PathVariable Long bookId
+    ) {
+        VocabularyBookResponse response = vocabularyBookService.getBook(userPrincipal.getId(), bookId);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
     @PatchMapping("/{bookId}")
     public ResponseEntity<ApiResponse<VocabularyBookResponse>> updateVocabularyBook(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @PathVariable Long bookId,
+            @Valid @RequestBody VocabularyBookUpdateRequest request
+    ) {
+        VocabularyBookResponse response = vocabularyBookService.updateBook(userPrincipal.getId(), bookId, request);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @PutMapping("/{bookId}")
+    public ResponseEntity<ApiResponse<VocabularyBookResponse>> updateVocabularyBookWithPut(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
             @PathVariable Long bookId,
             @Valid @RequestBody VocabularyBookUpdateRequest request
@@ -91,6 +114,45 @@ public class VocabularyBookController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
     }
 
+    @PostMapping("/{bookId}/words/selective")
+    public ResponseEntity<ApiResponse<VocabularyEntrySaveResponse>> addWordsSelective(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @PathVariable Long bookId,
+            @Valid @RequestBody VocabularyWordsSelectiveRequest request
+    ) {
+        VocabularyEntrySaveResponse response = vocabularyBookService.addSelectiveWords(
+                userPrincipal.getId(),
+                bookId,
+                request.getArticleId(),
+                request.getVocabularyIds()
+        );
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
+    }
+
+    @PostMapping("/{bookId}/words/bulk")
+    public ResponseEntity<ApiResponse<VocabularyEntrySaveResponse>> addWordsBulk(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @PathVariable Long bookId,
+            @Valid @RequestBody VocabularyWordsBulkRequest request
+    ) {
+        VocabularyEntrySaveResponse response = vocabularyBookService.addBulkWords(
+                userPrincipal.getId(),
+                bookId,
+                request.getArticleId()
+        );
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
+    }
+
+    @PostMapping("/{bookId}/words")
+    public ResponseEntity<ApiResponse<VocabularyEntryResponse>> addManualWord(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @PathVariable Long bookId,
+            @Valid @RequestBody VocabularyWordManualCreateRequest request
+    ) {
+        VocabularyEntryResponse response = vocabularyBookService.addManualWord(userPrincipal.getId(), bookId, request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
+    }
+
     @GetMapping("/{bookId}/entries")
     public ResponseEntity<ApiResponse<PageResponse<VocabularyEntryResponse>>> getEntries(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
@@ -110,8 +172,30 @@ public class VocabularyBookController {
         return ResponseEntity.ok(ApiResponse.success(PageResponse.from(entryPage)));
     }
 
+    @GetMapping("/{bookId}/words")
+    public ResponseEntity<ApiResponse<PageResponse<VocabularyEntryResponse>>> getWords(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @PathVariable Long bookId,
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size,
+            @RequestParam(defaultValue = "createdAt,desc") String sort,
+            @RequestParam(required = false) String keyword
+    ) {
+        return getEntries(userPrincipal, bookId, page, size, sort, keyword);
+    }
+
     @DeleteMapping("/{bookId}/entries/{entryId}")
     public ResponseEntity<Void> deleteEntry(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @PathVariable Long bookId,
+            @PathVariable Long entryId
+    ) {
+        vocabularyBookService.deleteEntry(userPrincipal.getId(), bookId, entryId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/{bookId}/words/{entryId}")
+    public ResponseEntity<Void> deleteWord(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
             @PathVariable Long bookId,
             @PathVariable Long entryId

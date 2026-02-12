@@ -21,6 +21,7 @@ import com.smim.backend.domain.vocabularybook.dto.VocabularyEntryResponse;
 import com.smim.backend.domain.vocabularybook.dto.VocabularyEntrySaveResponse;
 import com.smim.backend.domain.vocabularybook.dto.VocabularyEntryStatusResponse;
 import com.smim.backend.domain.vocabularybook.dto.VocabularyEntryStatusUpdateRequest;
+import com.smim.backend.domain.vocabularybook.dto.VocabularyWordManualCreateRequest;
 import com.smim.backend.global.error.ErrorCode;
 import com.smim.backend.global.error.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
@@ -96,6 +97,11 @@ public class VocabularyBookService {
         return books.stream().map(VocabularyBookResponse::from).toList();
     }
 
+    @Transactional(readOnly = true)
+    public VocabularyBookResponse getBook(Long userId, Long bookId) {
+        return VocabularyBookResponse.from(getBookOrThrow(userId, bookId));
+    }
+
     @Transactional
     public VocabularyBookResponse updateBook(Long userId, Long bookId, VocabularyBookUpdateRequest request) {
         VocabularyBook book = getBookOrThrow(userId, bookId);
@@ -123,62 +129,43 @@ public class VocabularyBookService {
 
     @Transactional
     public VocabularyEntrySaveResponse addEntries(Long userId, Long bookId, VocabularyEntryCreateRequest request) {
-        VocabularyBook book = getBookOrThrow(userId, bookId);
-        Article article = articleRepository.findById(request.getArticleId())
-                .orElseThrow(() -> new BusinessException(ErrorCode.ARTICLE_NOT_FOUND));
-        validateArticleOwnership(userId, article);
-
-        if (!article.isCompleted()) {
-            throw new BusinessException(ErrorCode.INVALID_REQUEST);
-        }
-
         boolean saveAll = Boolean.TRUE.equals(request.getSaveAll());
-        List<Long> vocabularyIds = request.getVocabularyIds();
+        return addEntriesFromArticle(userId, bookId, request.getArticleId(), request.getVocabularyIds(), saveAll);
+    }
 
-        if (!saveAll && (vocabularyIds == null || vocabularyIds.isEmpty())) {
-            throw new BusinessException(ErrorCode.INVALID_REQUEST);
+    @Transactional
+    public VocabularyEntrySaveResponse addSelectiveWords(
+            Long userId,
+            Long bookId,
+            Long articleId,
+            List<Long> vocabularyIds
+    ) {
+        return addEntriesFromArticle(userId, bookId, articleId, vocabularyIds, false);
+    }
+
+    @Transactional
+    public VocabularyEntrySaveResponse addBulkWords(Long userId, Long bookId, Long articleId) {
+        return addEntriesFromArticle(userId, bookId, articleId, null, true);
+    }
+
+    @Transactional
+    public VocabularyEntryResponse addManualWord(Long userId, Long bookId, VocabularyWordManualCreateRequest request) {
+        VocabularyBook book = getBookOrThrow(userId, bookId);
+        String normalizedWord = request.getWord().trim();
+        if (vocabularyEntryRepository.existsByVocabularyBookIdAndWordIgnoreCase(book.getId(), normalizedWord)) {
+            throw new BusinessException(ErrorCode.DUPLICATE_ENTRY);
         }
 
-        List<ArticleVocabulary> vocabularies;
-        if (saveAll) {
-            vocabularies = articleVocabularyRepository.findByArticleId(article.getId());
-        } else {
-            vocabularies = articleVocabularyRepository.findAllById(vocabularyIds)
-                    .stream()
-                    .filter(vocab -> Objects.equals(vocab.getArticle().getId(), article.getId()))
-                    .toList();
-        }
-
-        int savedCount = 0;
-        int duplicateCount = 0;
-        List<VocabularyEntry> toSave = new ArrayList<>();
-
-        for (ArticleVocabulary vocab : vocabularies) {
-            if (vocabularyEntryRepository.existsByVocabularyBookIdAndWordIgnoreCase(book.getId(), vocab.getWord())) {
-                duplicateCount++;
-                continue;
-            }
-            VocabularyEntry entry = VocabularyEntry.builder()
-                    .vocabularyBook(book)
-                    .word(vocab.getWord())
-                    .definition(vocab.getDefinition())
-                    .contextSentence(vocab.getContextSentence())
-                    .sourceArticle(article)
-                    .learningStatus(LearningStatus.NEW)
-                    .build();
-            toSave.add(entry);
-            savedCount++;
-        }
-
-        vocabularyEntryRepository.saveAll(toSave);
-        book.increaseWordCount(savedCount);
-
-        return VocabularyEntrySaveResponse.builder()
-                .savedCount(savedCount)
-                .duplicateCount(duplicateCount)
-                .bookId(book.getId())
-                .bookName(book.getName())
+        VocabularyEntry entry = VocabularyEntry.builder()
+                .vocabularyBook(book)
+                .word(normalizedWord)
+                .definition(request.getDefinition().trim())
+                .contextSentence(request.getContextSentence())
+                .learningStatus(LearningStatus.NEW)
                 .build();
+        VocabularyEntry saved = vocabularyEntryRepository.save(entry);
+        book.increaseWordCount(1);
+        return VocabularyEntryResponse.from(saved);
     }
 
     @Transactional(readOnly = true)
@@ -283,5 +270,64 @@ public class VocabularyBookService {
         if (!Objects.equals(article.getUser().getId(), userId)) {
             throw new BusinessException(ErrorCode.ACCESS_DENIED);
         }
+    }
+
+    private VocabularyEntrySaveResponse addEntriesFromArticle(
+            Long userId,
+            Long bookId,
+            Long articleId,
+            List<Long> vocabularyIds,
+            boolean saveAll
+    ) {
+        VocabularyBook book = getBookOrThrow(userId, bookId);
+        Article article = articleRepository.findById(articleId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.ARTICLE_NOT_FOUND));
+        validateArticleOwnership(userId, article);
+
+        if (!article.isCompleted()) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST);
+        }
+
+        if (!saveAll && (vocabularyIds == null || vocabularyIds.isEmpty())) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST);
+        }
+
+        List<ArticleVocabulary> vocabularies = saveAll
+                ? articleVocabularyRepository.findByArticleId(article.getId())
+                : articleVocabularyRepository.findAllById(vocabularyIds)
+                .stream()
+                .filter(vocab -> Objects.equals(vocab.getArticle().getId(), article.getId()))
+                .toList();
+
+        int savedCount = 0;
+        int duplicateCount = 0;
+        List<VocabularyEntry> toSave = new ArrayList<>();
+
+        for (ArticleVocabulary vocab : vocabularies) {
+            if (vocabularyEntryRepository.existsByVocabularyBookIdAndWordIgnoreCase(book.getId(), vocab.getWord())) {
+                duplicateCount++;
+                continue;
+            }
+            VocabularyEntry entry = VocabularyEntry.builder()
+                    .vocabularyBook(book)
+                    .word(vocab.getWord())
+                    .definition(vocab.getDefinition())
+                    .contextSentence(vocab.getContextSentence())
+                    .sourceArticle(article)
+                    .learningStatus(LearningStatus.NEW)
+                    .build();
+            toSave.add(entry);
+            savedCount++;
+        }
+
+        vocabularyEntryRepository.saveAll(toSave);
+        book.increaseWordCount(savedCount);
+
+        return VocabularyEntrySaveResponse.builder()
+                .savedCount(savedCount)
+                .duplicateCount(duplicateCount)
+                .bookId(book.getId())
+                .bookName(book.getName())
+                .build();
     }
 }
