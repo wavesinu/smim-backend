@@ -165,4 +165,8 @@ public class User extends BaseEntity {
     public void updateCefrLevel(CefrLevel targetCefrLevel) {
         this.targetCefrLevel = targetCefrLevel;
     }
+
+    public void updatePassword(String encodedPassword) {
+        this.password = encodedPassword;
+    }
 }

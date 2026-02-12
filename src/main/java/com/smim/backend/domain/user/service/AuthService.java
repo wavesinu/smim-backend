@@ -6,6 +6,8 @@ import com.smim.backend.domain.user.User;
 import com.smim.backend.domain.user.UserRepository;
 import com.smim.backend.domain.user.dto.EmailLoginRequest;
 import com.smim.backend.domain.user.dto.EmailSignupRequest;
+import com.smim.backend.domain.user.dto.PasswordResetRequestResponse;
+import com.smim.backend.domain.user.dto.PasswordResetResponse;
 import com.smim.backend.domain.user.dto.TokenResponse;
 import com.smim.backend.domain.vocabularybook.service.VocabularyBookService;
 import com.smim.backend.global.auth.UserPrincipal;
@@ -21,6 +23,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -40,6 +44,9 @@ public class AuthService {
 
     @Value("${jwt.refresh-token-expiration}")
     private long refreshTokenExpiration;
+
+    @Value("${auth.password-reset-token-expiration:900000}")
+    private long passwordResetTokenExpiration;
 
     /**
      * 이메일 회원가입
@@ -138,6 +145,60 @@ public class AuthService {
         String key = "refresh_token:" + userId;
         redisTemplate.delete(key);
         log.info("User {} logged out successfully", userId);
+    }
+
+    public PasswordResetRequestResponse requestPasswordReset(String email) {
+        userRepository.findByEmail(email).ifPresent(user -> {
+            if (user.getProvider() != Provider.LOCAL || user.getPassword() == null) {
+                return;
+            }
+            String resetToken = UUID.randomUUID().toString();
+            String key = "password_reset:" + resetToken;
+            redisTemplate.opsForValue().set(
+                    key,
+                    String.valueOf(user.getId()),
+                    passwordResetTokenExpiration,
+                    TimeUnit.MILLISECONDS
+            );
+            // TODO: MailService 연동 시 resetToken을 이메일로 발송
+            log.info("Password reset token issued for userId={}", user.getId());
+        });
+
+        return PasswordResetRequestResponse.builder()
+                .requested(true)
+                .expiresInSeconds(TimeUnit.MILLISECONDS.toSeconds(passwordResetTokenExpiration))
+                .build();
+    }
+
+    @Transactional
+    public PasswordResetResponse resetPassword(String token, String newPassword) {
+        String key = "password_reset:" + token;
+        String userIdValue = redisTemplate.opsForValue().get(key);
+        if (userIdValue == null) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST);
+        }
+
+        Long userId;
+        try {
+            userId = Long.parseLong(userIdValue);
+        } catch (NumberFormatException ex) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST);
+        }
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        if (user.getProvider() != Provider.LOCAL) {
+            throw new BusinessException(ErrorCode.SOCIAL_ACCOUNT_LOGIN_REQUIRED);
+        }
+
+        user.updatePassword(passwordEncoder.encode(newPassword));
+        redisTemplate.delete(key);
+
+        return PasswordResetResponse.builder()
+                .reset(true)
+                .updatedAt(Instant.now())
+                .build();
     }
 
     private TokenResponse issueTokens(User user) {

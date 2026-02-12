@@ -2,6 +2,10 @@ package com.smim.backend.domain.user.api;
 
 import com.smim.backend.domain.user.dto.EmailLoginRequest;
 import com.smim.backend.domain.user.dto.EmailSignupRequest;
+import com.smim.backend.domain.user.dto.PasswordResetConfirmRequest;
+import com.smim.backend.domain.user.dto.PasswordResetRequest;
+import com.smim.backend.domain.user.dto.PasswordResetRequestResponse;
+import com.smim.backend.domain.user.dto.PasswordResetResponse;
 import com.smim.backend.domain.user.dto.TokenRefreshRequest;
 import com.smim.backend.domain.user.dto.TokenResponse;
 import com.smim.backend.domain.user.service.AuthService;
@@ -79,5 +83,21 @@ public class AuthController {
     ) {
         authService.logout(userPrincipal.getId());
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/password/reset-request")
+    public ResponseEntity<ApiResponse<PasswordResetRequestResponse>> requestPasswordReset(
+            @Valid @RequestBody PasswordResetRequest request
+    ) {
+        PasswordResetRequestResponse response = authService.requestPasswordReset(request.getEmail());
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @PostMapping("/password/reset")
+    public ResponseEntity<ApiResponse<PasswordResetResponse>> resetPassword(
+            @Valid @RequestBody PasswordResetConfirmRequest request
+    ) {
+        PasswordResetResponse response = authService.resetPassword(request.getToken(), request.getNewPassword());
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 }
