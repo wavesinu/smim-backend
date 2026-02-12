@@ -6,6 +6,7 @@ import com.smim.backend.domain.article.dto.ArticleExtractionStatusResponse;
 import com.smim.backend.domain.article.dto.ArticleReextractResponse;
 import com.smim.backend.domain.article.dto.ArticleResponse;
 import com.smim.backend.domain.article.dto.ArticleSummaryResponse;
+import com.smim.backend.domain.user.CefrLevel;
 import com.smim.backend.domain.article.service.ArticleService;
 import com.smim.backend.domain.usage.RateLimitService;
 import com.smim.backend.domain.usage.RateLimitStatus;
@@ -139,6 +140,27 @@ public class ArticleController {
                 pageRequest,
                 levelRange
         );
+        return ResponseEntity.ok(ApiResponse.success(PageResponse.from(pageResult)));
+    }
+
+    @GetMapping("/recommended")
+    public ResponseEntity<ApiResponse<PageResponse<ArticleSummaryResponse>>> getRecommendedArticles(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "10") @Min(1) @Max(50) int size,
+            @RequestParam(defaultValue = "1") @Min(0) @Max(3) int levelRange
+    ) {
+        return getRecommendations(userPrincipal, page, size, levelRange);
+    }
+
+    @GetMapping("/trending")
+    public ResponseEntity<ApiResponse<PageResponse<ArticleSummaryResponse>>> getTrendingArticles(
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "10") @Min(1) @Max(50) int size,
+            @RequestParam(required = false) CefrLevel cefrLevel
+    ) {
+        PageRequest pageRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Page<ArticleSummaryResponse> pageResult = articleService.getTrendingArticles(pageRequest, cefrLevel);
         return ResponseEntity.ok(ApiResponse.success(PageResponse.from(pageResult)));
     }
 

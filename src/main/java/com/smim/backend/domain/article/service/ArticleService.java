@@ -169,6 +169,14 @@ public class ArticleService {
         return page.map(ArticleSummaryResponse::from);
     }
 
+    @Transactional(readOnly = true)
+    public Page<ArticleSummaryResponse> getTrendingArticles(Pageable pageable, CefrLevel cefrLevel) {
+        Page<Article> page = cefrLevel == null
+                ? articleRepository.findByIsCompletedTrue(pageable)
+                : articleRepository.findByIsCompletedTrueAndCefrLevel(cefrLevel, pageable);
+        return page.map(ArticleSummaryResponse::from);
+    }
+
     private User getUserOrThrow(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));

@@ -3,6 +3,8 @@ package com.smim.backend.domain.article.service;
 import com.smim.backend.domain.article.Article;
 import com.smim.backend.domain.article.ArticleRepository;
 import com.smim.backend.domain.article.dto.ArticleResponse;
+import com.smim.backend.domain.article.dto.ArticleSummaryResponse;
+import com.smim.backend.domain.user.CefrLevel;
 import com.smim.backend.domain.user.Provider;
 import com.smim.backend.domain.user.Role;
 import com.smim.backend.domain.user.User;
@@ -12,11 +14,15 @@ import com.smim.backend.global.error.exception.InvalidUrlException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -194,5 +200,57 @@ class ArticleServiceTest {
         assertThat(capturedArticle.getOriginalUrl()).isEqualTo(url);
         assertThat(capturedArticle.getSourceDomain()).isEqualTo("example.com");
         assertThat(capturedArticle.isCompleted()).isFalse();
+    }
+
+    @Test
+    @DisplayName("트렌딩 아티클 조회 - 전체 레벨")
+    void getTrendingArticles_withoutCefrFilter() {
+        Article article = createCompletedArticle("Trending 1");
+        PageRequest pageRequest = PageRequest.of(0, 10);
+        given(articleRepository.findByIsCompletedTrue(pageRequest))
+                .willReturn(new PageImpl<>(List.of(article), pageRequest, 1));
+
+        Page<ArticleSummaryResponse> result = articleService.getTrendingArticles(pageRequest, null);
+
+        assertThat(result.getTotalElements()).isEqualTo(1);
+        assertThat(result.getContent().get(0).getTitle()).isEqualTo("Trending 1");
+        verify(articleRepository, times(1)).findByIsCompletedTrue(pageRequest);
+    }
+
+    @Test
+    @DisplayName("트렌딩 아티클 조회 - CEFR 필터 적용")
+    void getTrendingArticles_withCefrFilter() {
+        Article article = createCompletedArticle("Trending A2");
+        article.updateDifficulty(CefrLevel.A2, 1.2, 0.1, java.time.Instant.now());
+
+        PageRequest pageRequest = PageRequest.of(0, 10);
+        given(articleRepository.findByIsCompletedTrueAndCefrLevel(CefrLevel.A2, pageRequest))
+                .willReturn(new PageImpl<>(List.of(article), pageRequest, 1));
+
+        Page<ArticleSummaryResponse> result = articleService.getTrendingArticles(pageRequest, CefrLevel.A2);
+
+        assertThat(result.getTotalElements()).isEqualTo(1);
+        assertThat(result.getContent().get(0).getCefrLevel()).isEqualTo(CefrLevel.A2);
+        verify(articleRepository, times(1)).findByIsCompletedTrueAndCefrLevel(CefrLevel.A2, pageRequest);
+    }
+
+    private Article createCompletedArticle(String title) {
+        User user = User.builder()
+                .email("owner@example.com")
+                .name("Owner")
+                .provider(Provider.LOCAL)
+                .providerId(null)
+                .role(Role.USER)
+                .password("encoded")
+                .build();
+        Article article = Article.builder()
+                .user(user)
+                .title(title)
+                .content("content")
+                .originalUrl("https://example.com/article")
+                .sourceDomain("example.com")
+                .build();
+        article.markAsCompleted();
+        return article;
     }
 }

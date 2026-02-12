@@ -61,6 +61,10 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
      */
     Page<Article> findByCefrLevelIn(List<CefrLevel> cefrLevels, Pageable pageable);
 
+    Page<Article> findByIsCompletedTrue(Pageable pageable);
+
+    Page<Article> findByIsCompletedTrueAndCefrLevel(CefrLevel cefrLevel, Pageable pageable);
+
     /**
      * 아티클과 단어 목록을 함께 조회 (N+1 방지)
      */
