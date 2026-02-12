@@ -1,6 +1,7 @@
 package com.smim.backend.domain.learning.api;
 
 import com.smim.backend.domain.learning.LearningService;
+import com.smim.backend.domain.learning.dto.LearningPeriodStatsResponse;
 import com.smim.backend.domain.learning.dto.LearningStatsResponse;
 import com.smim.backend.domain.learning.dto.ReviewWordsResponse;
 import com.smim.backend.global.auth.UserPrincipal;
@@ -15,6 +16,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.time.Duration;
 
 @Validated
 @RestController
@@ -39,6 +42,42 @@ public class LearningController {
             @AuthenticationPrincipal UserPrincipal userPrincipal
     ) {
         LearningStatsResponse response = learningService.getLearningStats(userPrincipal.getId());
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @GetMapping("/stats/daily")
+    public ResponseEntity<ApiResponse<LearningPeriodStatsResponse>> getDailyStats(
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        LearningPeriodStatsResponse response = learningService.getLearningStatsByPeriod(
+                userPrincipal.getId(),
+                "DAILY",
+                Duration.ofDays(1)
+        );
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @GetMapping("/stats/weekly")
+    public ResponseEntity<ApiResponse<LearningPeriodStatsResponse>> getWeeklyStats(
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        LearningPeriodStatsResponse response = learningService.getLearningStatsByPeriod(
+                userPrincipal.getId(),
+                "WEEKLY",
+                Duration.ofDays(7)
+        );
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @GetMapping("/stats/monthly")
+    public ResponseEntity<ApiResponse<LearningPeriodStatsResponse>> getMonthlyStats(
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        LearningPeriodStatsResponse response = learningService.getLearningStatsByPeriod(
+                userPrincipal.getId(),
+                "MONTHLY",
+                Duration.ofDays(30)
+        );
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 }

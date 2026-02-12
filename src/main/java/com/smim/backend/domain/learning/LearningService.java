@@ -1,6 +1,7 @@
 package com.smim.backend.domain.learning;
 
 import com.smim.backend.domain.learning.dto.LearningStatsResponse;
+import com.smim.backend.domain.learning.dto.LearningPeriodStatsResponse;
 import com.smim.backend.domain.learning.dto.ReviewWordResponse;
 import com.smim.backend.domain.learning.dto.ReviewWordsResponse;
 import com.smim.backend.domain.vocabularybook.LearningStatus;
@@ -10,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
@@ -19,6 +21,7 @@ public class LearningService {
 
     private final VocabularyEntryRepository vocabularyEntryRepository;
     private final LearningStatsService learningStatsService;
+    private final QuizHistoryStore quizHistoryStore;
 
     public ReviewWordsResponse getReviewWords(Long userId, int limit, Long bookId) {
         PageRequest pageRequest = PageRequest.of(0, limit);
@@ -55,6 +58,27 @@ public class LearningService {
                 .averageAccuracy(accuracy)
                 .totalQuizzesTaken(stats.getTotalQuizzesTaken())
                 .studyStreak(stats.getStudyStreak())
+                .build();
+    }
+
+    public LearningPeriodStatsResponse getLearningStatsByPeriod(Long userId, String period, Duration window) {
+        Instant now = Instant.now();
+        Instant from = now.minus(window);
+        List<QuizHistoryRecord> records = quizHistoryStore.getHistorySince(userId, from);
+
+        int quizzesTaken = records.size();
+        int totalQuestions = records.stream().mapToInt(QuizHistoryRecord::getTotalCount).sum();
+        int correctAnswers = records.stream().mapToInt(QuizHistoryRecord::getCorrectCount).sum();
+        double averageAccuracy = totalQuestions == 0 ? 0.0 : (double) correctAnswers / totalQuestions;
+
+        return LearningPeriodStatsResponse.builder()
+                .period(period)
+                .from(from)
+                .to(now)
+                .quizzesTaken(quizzesTaken)
+                .totalQuestions(totalQuestions)
+                .correctAnswers(correctAnswers)
+                .averageAccuracy(averageAccuracy)
                 .build();
     }
 }

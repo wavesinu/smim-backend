@@ -1,6 +1,12 @@
 package com.smim.backend.domain.vocabularybook.api;
 
+import com.smim.backend.domain.learning.QuizService;
+import com.smim.backend.domain.learning.dto.QuizGenerateResponse;
+import com.smim.backend.domain.learning.dto.QuizHistoryResponse;
+import com.smim.backend.domain.learning.dto.QuizSubmitRequest;
+import com.smim.backend.domain.learning.dto.QuizSubmitResponse;
 import com.smim.backend.domain.vocabularybook.dto.VocabularyBookCreateRequest;
+import com.smim.backend.domain.vocabularybook.dto.VocabularyBookQuizGenerateRequest;
 import com.smim.backend.domain.vocabularybook.dto.VocabularyBookResponse;
 import com.smim.backend.domain.vocabularybook.dto.VocabularyBookUpdateRequest;
 import com.smim.backend.domain.vocabularybook.dto.VocabularyEntryCreateRequest;
@@ -48,6 +54,7 @@ import java.util.List;
 public class VocabularyBookController {
 
     private final VocabularyBookService vocabularyBookService;
+    private final QuizService quizService;
 
     @PostMapping
     public ResponseEntity<ApiResponse<VocabularyBookResponse>> createVocabularyBook(
@@ -194,13 +201,13 @@ public class VocabularyBookController {
         return ResponseEntity.noContent().build();
     }
 
-    @DeleteMapping("/{bookId}/words/{entryId}")
+    @DeleteMapping("/{bookId}/words/{wordId}")
     public ResponseEntity<Void> deleteWord(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
             @PathVariable Long bookId,
-            @PathVariable Long entryId
+            @PathVariable Long wordId
     ) {
-        vocabularyBookService.deleteEntry(userPrincipal.getId(), bookId, entryId);
+        vocabularyBookService.deleteEntry(userPrincipal.getId(), bookId, wordId);
         return ResponseEntity.noContent().build();
     }
 
@@ -227,6 +234,42 @@ public class VocabularyBookController {
                 entryId,
                 request
         );
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @PostMapping("/{bookId}/quiz")
+    public ResponseEntity<ApiResponse<QuizGenerateResponse>> generateQuiz(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @PathVariable Long bookId,
+            @Valid @RequestBody VocabularyBookQuizGenerateRequest request
+    ) {
+        QuizGenerateResponse response = quizService.generateQuiz(
+                userPrincipal.getId(),
+                bookId,
+                request.getQuizType(),
+                request.getCount()
+        );
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
+    }
+
+    @PostMapping("/{bookId}/quiz/{quizId}/submit")
+    public ResponseEntity<ApiResponse<QuizSubmitResponse>> submitQuiz(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @PathVariable Long bookId,
+            @PathVariable String quizId,
+            @Valid @RequestBody QuizSubmitRequest request
+    ) {
+        QuizSubmitResponse response = quizService.submitQuiz(userPrincipal.getId(), bookId, quizId, request);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @GetMapping("/{bookId}/quiz/history")
+    public ResponseEntity<ApiResponse<QuizHistoryResponse>> getQuizHistory(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @PathVariable Long bookId,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int limit
+    ) {
+        QuizHistoryResponse response = quizService.getQuizHistory(userPrincipal.getId(), bookId, limit);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 

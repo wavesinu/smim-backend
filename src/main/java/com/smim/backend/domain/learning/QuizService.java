@@ -3,6 +3,8 @@ package com.smim.backend.domain.learning;
 import com.smim.backend.domain.learning.dto.QuizAnswerRequest;
 import com.smim.backend.domain.learning.dto.QuizGenerateRequest;
 import com.smim.backend.domain.learning.dto.QuizGenerateResponse;
+import com.smim.backend.domain.learning.dto.QuizHistoryItemResponse;
+import com.smim.backend.domain.learning.dto.QuizHistoryResponse;
 import com.smim.backend.domain.learning.dto.QuizQuestionResponse;
 import com.smim.backend.domain.learning.dto.QuizResultItem;
 import com.smim.backend.domain.learning.dto.QuizSubmitRequest;
@@ -36,11 +38,17 @@ public class QuizService {
     private final VocabularyBookRepository vocabularyBookRepository;
     private final VocabularyEntryRepository vocabularyEntryRepository;
     private final QuizSessionStore quizSessionStore;
+    private final QuizHistoryStore quizHistoryStore;
     private final LearningStatsService learningStatsService;
 
     @Transactional(readOnly = true)
     public QuizGenerateResponse generateQuiz(Long userId, QuizGenerateRequest request) {
-        VocabularyBook book = vocabularyBookRepository.findByIdAndUserId(request.getBookId(), userId)
+        return generateQuiz(userId, request.getBookId(), request.getQuizType(), request.getCount());
+    }
+
+    @Transactional(readOnly = true)
+    public QuizGenerateResponse generateQuiz(Long userId, Long bookId, QuizType quizType, Integer requestedCount) {
+        VocabularyBook book = vocabularyBookRepository.findByIdAndUserId(bookId, userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.VOCABULARY_BOOK_NOT_FOUND));
 
         List<VocabularyEntry> allEntries = vocabularyEntryRepository
@@ -50,7 +58,7 @@ public class QuizService {
             throw new BusinessException(ErrorCode.INVALID_REQUEST);
         }
 
-        int count = request.getCount() == null ? DEFAULT_QUIZ_COUNT : request.getCount();
+        int count = requestedCount == null ? DEFAULT_QUIZ_COUNT : requestedCount;
         count = Math.min(count, Math.min(30, allEntries.size()));
 
         Collections.shuffle(allEntries);
@@ -67,13 +75,13 @@ public class QuizService {
         int questionId = 1;
         for (VocabularyEntry entry : selected) {
             List<String> options = buildOptions(entry.getDefinition(), allDefinitions);
-            String questionText = buildQuestionText(entry, request.getQuizType());
+            String questionText = buildQuestionText(entry, quizType);
             int correctIndex = options.indexOf(entry.getDefinition());
 
             QuizQuestion question = QuizQuestion.builder()
                     .questionId(questionId)
                     .entryId(entry.getId())
-                    .quizType(request.getQuizType())
+                    .quizType(quizType)
                     .questionText(questionText)
                     .options(options)
                     .correctAnswerIndex(correctIndex)
@@ -82,7 +90,7 @@ public class QuizService {
 
             questionResponses.add(QuizQuestionResponse.builder()
                     .questionId(questionId)
-                    .questionType(request.getQuizType())
+                    .questionType(quizType)
                     .questionText(questionText)
                     .options(options)
                     .entryId(entry.getId())
@@ -110,6 +118,11 @@ public class QuizService {
 
     @Transactional
     public QuizSubmitResponse submitQuiz(Long userId, String sessionId, QuizSubmitRequest request) {
+        return submitQuiz(userId, null, sessionId, request);
+    }
+
+    @Transactional
+    public QuizSubmitResponse submitQuiz(Long userId, Long expectedBookId, String sessionId, QuizSubmitRequest request) {
         QuizSession session = quizSessionStore.find(sessionId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND));
 
@@ -119,6 +132,9 @@ public class QuizService {
         }
         if (!session.getUserId().equals(userId)) {
             throw new BusinessException(ErrorCode.ACCESS_DENIED);
+        }
+        if (expectedBookId != null && !session.getBookId().equals(expectedBookId)) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST);
         }
 
         Map<Integer, QuizQuestion> questionMap = session.getQuestions().stream()
@@ -167,6 +183,15 @@ public class QuizService {
         double accuracy = totalCount == 0 ? 0.0 : (double) correctCount / totalCount;
 
         learningStatsService.recordQuiz(userId, correctCount, totalCount);
+        quizHistoryStore.record(QuizHistoryRecord.builder()
+                .sessionId(sessionId)
+                .userId(userId)
+                .bookId(session.getBookId())
+                .correctCount(correctCount)
+                .totalCount(totalCount)
+                .accuracy(accuracy)
+                .submittedAt(Instant.now())
+                .build());
         quizSessionStore.remove(sessionId);
 
         return QuizSubmitResponse.builder()
@@ -175,6 +200,22 @@ public class QuizService {
                 .accuracy(accuracy)
                 .results(results)
                 .updatedSchedules(updatedSchedules)
+                .build();
+    }
+
+    @Transactional(readOnly = true)
+    public QuizHistoryResponse getQuizHistory(Long userId, Long bookId, int limit) {
+        vocabularyBookRepository.findByIdAndUserId(bookId, userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.VOCABULARY_BOOK_NOT_FOUND));
+
+        List<QuizHistoryItemResponse> history = quizHistoryStore.getBookHistory(userId, bookId, limit).stream()
+                .map(QuizHistoryItemResponse::from)
+                .toList();
+
+        return QuizHistoryResponse.builder()
+                .bookId(bookId)
+                .totalCount(history.size())
+                .quizzes(history)
                 .build();
     }
 
