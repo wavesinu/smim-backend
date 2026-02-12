@@ -6,6 +6,7 @@ import com.smim.backend.domain.user.dto.TokenRefreshRequest;
 import com.smim.backend.domain.user.dto.TokenResponse;
 import com.smim.backend.domain.user.service.AuthService;
 import com.smim.backend.global.auth.UserPrincipal;
+import com.smim.backend.global.common.response.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -33,11 +34,11 @@ public class AuthController {
      * @return Access Token과 Refresh Token
      */
     @PostMapping("/signup")
-    public ResponseEntity<TokenResponse> signup(
+    public ResponseEntity<ApiResponse<TokenResponse>> signup(
             @Valid @RequestBody EmailSignupRequest request
     ) {
         TokenResponse response = authService.signup(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
     }
 
     /**
@@ -46,11 +47,11 @@ public class AuthController {
      * @return Access Token과 Refresh Token
      */
     @PostMapping("/login")
-    public ResponseEntity<TokenResponse> login(
+    public ResponseEntity<ApiResponse<TokenResponse>> login(
             @Valid @RequestBody EmailLoginRequest request
     ) {
         TokenResponse response = authService.login(request);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     /**
@@ -59,11 +60,11 @@ public class AuthController {
      * @return 새로운 Access Token과 Refresh Token
      */
     @PostMapping("/refresh")
-    public ResponseEntity<TokenResponse> refreshToken(
+    public ResponseEntity<ApiResponse<TokenResponse>> refreshToken(
             @Valid @RequestBody TokenRefreshRequest request
     ) {
         TokenResponse response = authService.refreshAccessToken(request.getRefreshToken());
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     /**

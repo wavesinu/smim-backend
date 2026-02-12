@@ -11,12 +11,16 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 단어장 엔티티 (기본 단어장 포함)
@@ -51,6 +55,9 @@ public class VocabularyBook extends BaseEntity {
     @Column(name = "word_count", nullable = false)
     private int wordCount;
 
+    @OneToMany(mappedBy = "vocabularyBook", cascade = jakarta.persistence.CascadeType.ALL, orphanRemoval = true)
+    private List<VocabularyEntry> entries = new ArrayList<>();
+
     @Builder
     public VocabularyBook(User user, String name, String description, boolean isDefault, int wordCount) {
         this.user = user;
@@ -58,5 +65,18 @@ public class VocabularyBook extends BaseEntity {
         this.description = description;
         this.isDefault = isDefault;
         this.wordCount = wordCount;
+    }
+
+    public void increaseWordCount(int delta) {
+        this.wordCount = Math.max(0, this.wordCount + delta);
+    }
+
+    public void update(String name, String description) {
+        if (name != null) {
+            this.name = name;
+        }
+        if (description != null) {
+            this.description = description;
+        }
     }
 }

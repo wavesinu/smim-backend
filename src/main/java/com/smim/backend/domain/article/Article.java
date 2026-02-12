@@ -1,6 +1,7 @@
 package com.smim.backend.domain.article;
 
 import com.smim.backend.domain.common.BaseEntity;
+import com.smim.backend.domain.user.CefrLevel;
 import com.smim.backend.domain.user.User;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -8,6 +9,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -46,6 +48,22 @@ public class Article extends BaseEntity {
     @Column(name = "is_completed")
     private boolean isCompleted;
 
+    @Enumerated(EnumType.STRING)
+    @Column(length = 10)
+    private CefrLevel cefrLevel;
+
+    private Double averageWordDifficulty;
+
+    private Double complexSentenceRatio;
+
+    private Instant analyzedAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private ExtractionStatus extractionStatus;
+
+    private Instant extractionStartedAt;
+
     @OneToMany(mappedBy = "article", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ArticleVocabulary> vocabularyList = new ArrayList<>();
 
@@ -57,6 +75,8 @@ public class Article extends BaseEntity {
         this.originalUrl = originalUrl;
         this.sourceDomain = sourceDomain;
         this.isCompleted = false;
+        this.extractionStatus = ExtractionStatus.EXTRACTING;
+        this.extractionStartedAt = Instant.now();
     }
 
     /**
@@ -64,6 +84,18 @@ public class Article extends BaseEntity {
      */
     public void markAsCompleted() {
         this.isCompleted = true;
+        this.extractionStatus = ExtractionStatus.COMPLETED;
+    }
+
+    public void markExtractionFailed() {
+        this.extractionStatus = ExtractionStatus.FAILED;
+    }
+
+    public void startExtraction() {
+        this.isCompleted = false;
+        this.extractionStatus = ExtractionStatus.EXTRACTING;
+        this.extractionStartedAt = Instant.now();
+        this.vocabularyList.clear();
     }
 
     /**
@@ -83,5 +115,12 @@ public class Article extends BaseEntity {
     public void addVocabulary(ArticleVocabulary vocabulary) {
         this.vocabularyList.add(vocabulary);
         vocabulary.setArticle(this);
+    }
+
+    public void updateDifficulty(CefrLevel cefrLevel, Double averageWordDifficulty, Double complexSentenceRatio, Instant analyzedAt) {
+        this.cefrLevel = cefrLevel;
+        this.averageWordDifficulty = averageWordDifficulty;
+        this.complexSentenceRatio = complexSentenceRatio;
+        this.analyzedAt = analyzedAt;
     }
 }

@@ -1,15 +1,19 @@
 package com.smim.backend.domain.article.dto;
 
 import com.smim.backend.domain.article.Article;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 
 import java.time.Instant;
+import java.util.List;
 
 /**
  * 아티클 응답 DTO
  */
 @Getter
+@Builder
 @AllArgsConstructor
 public class ArticleResponse {
 
@@ -18,9 +22,10 @@ public class ArticleResponse {
     private String content;
     private String originalUrl;
     private String sourceDomain;
+    @JsonProperty("isCompleted")
     private boolean isCompleted;
+    private List<ArticleVocabularyResponse> vocabularyList;
     private Instant createdAt;
-    private int vocabularyCount;
 
     /**
      * Article 엔티티를 DTO로 변환
@@ -28,15 +33,17 @@ public class ArticleResponse {
      * @return 아티클 응답 DTO
      */
     public static ArticleResponse from(Article article) {
-        return new ArticleResponse(
-            article.getId(),
-            article.getTitle(),
-            article.getContent(),
-            article.getOriginalUrl(),
-            article.getSourceDomain(),
-            article.isCompleted(),
-            article.getCreatedAt(),
-            article.getVocabularyList().size()
-        );
+        return ArticleResponse.builder()
+                .id(article.getId())
+                .title(article.getTitle())
+                .content(article.getContent())
+                .originalUrl(article.getOriginalUrl())
+                .sourceDomain(article.getSourceDomain())
+                .isCompleted(article.isCompleted())
+                .vocabularyList(article.getVocabularyList().stream()
+                        .map(ArticleVocabularyResponse::from)
+                        .toList())
+                .createdAt(article.getCreatedAt())
+                .build();
     }
 }

@@ -68,6 +68,14 @@ public class User extends BaseEntity {
     /** 알림 수신 시간 (HH:mm) */
     private LocalTime notificationTime;
 
+    /** 알림 타임존 */
+    @Column(length = 50)
+    private String notificationTimezone;
+
+    /** 알림 최소 단어 수 */
+    @Column(nullable = false)
+    private int minWordsForNotification;
+
     /**
      * User 엔티티 생성자
      * @param email 이메일 주소
@@ -82,7 +90,9 @@ public class User extends BaseEntity {
                 Provider provider, String providerId, Role role,
                 String password, CefrLevel targetCefrLevel,
                 Boolean notificationEnabled, NotificationChannel notificationChannel,
-                LocalTime notificationTime) {
+                LocalTime notificationTime,
+                String notificationTimezone,
+                Integer minWordsForNotification) {
         this.email = email;
         this.name = name;
         this.profileImage = profileImage;
@@ -94,6 +104,8 @@ public class User extends BaseEntity {
         this.notificationEnabled = notificationEnabled != null && notificationEnabled;
         this.notificationChannel = notificationChannel == null ? NotificationChannel.NONE : notificationChannel;
         this.notificationTime = notificationTime;
+        this.notificationTimezone = notificationTimezone == null ? "Asia/Seoul" : notificationTimezone;
+        this.minWordsForNotification = minWordsForNotification == null ? 3 : minWordsForNotification;
     }
 
     /**
@@ -112,31 +124,38 @@ public class User extends BaseEntity {
     /**
      * 사용자 프로필 정보 부분 업데이트
      */
-    public void updateProfile(
-            String name,
-            String profileImage,
-            CefrLevel targetCefrLevel,
-            Boolean notificationEnabled,
-            NotificationChannel notificationChannel,
-            LocalTime notificationTime
-    ) {
+    public void updateProfile(String name, String profileImage) {
         if (name != null) {
             this.name = name;
         }
         if (profileImage != null) {
             this.profileImage = profileImage;
         }
-        if (targetCefrLevel != null) {
-            this.targetCefrLevel = targetCefrLevel;
+    }
+
+    public void updateNotificationSettings(
+            NotificationChannel notificationChannel,
+            Boolean notificationEnabled,
+            LocalTime notificationTime,
+            String notificationTimezone
+    ) {
+        if (notificationChannel != null) {
+            this.notificationChannel = notificationChannel;
         }
         if (notificationEnabled != null) {
             this.notificationEnabled = notificationEnabled;
         }
-        if (notificationChannel != null) {
-            this.notificationChannel = notificationChannel;
-        }
         if (notificationTime != null) {
             this.notificationTime = notificationTime;
+        }
+        if (notificationTimezone != null) {
+            this.notificationTimezone = notificationTimezone;
+        }
+    }
+
+    public void updateMinWordsForNotification(Integer minWordsForNotification) {
+        if (minWordsForNotification != null) {
+            this.minWordsForNotification = minWordsForNotification;
         }
     }
 

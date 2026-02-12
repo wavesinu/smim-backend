@@ -1,5 +1,6 @@
 package com.smim.backend.domain.article;
 
+import com.smim.backend.domain.user.CefrLevel;
 import com.smim.backend.domain.user.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -54,6 +55,11 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
      * 사용자의 아티클 개수
      */
     long countByUser(User user);
+
+    /**
+     * CEFR 레벨 기반 추천용 아티클 조회
+     */
+    Page<Article> findByCefrLevelIn(List<CefrLevel> cefrLevels, Pageable pageable);
 
     /**
      * 아티클과 단어 목록을 함께 조회 (N+1 방지)

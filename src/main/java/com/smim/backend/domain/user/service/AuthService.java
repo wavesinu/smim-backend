@@ -75,14 +75,14 @@ public class AuthService {
     @Transactional(readOnly = true)
     public TokenResponse login(EmailLoginRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_PASSWORD));
+                .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED));
 
         if (user.getProvider() != Provider.LOCAL) {
             throw new BusinessException(ErrorCode.SOCIAL_ACCOUNT_LOGIN_REQUIRED);
         }
 
         if (user.getPassword() == null || !passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new BusinessException(ErrorCode.INVALID_PASSWORD);
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
 
         return issueTokens(user);

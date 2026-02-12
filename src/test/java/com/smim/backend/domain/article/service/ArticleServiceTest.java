@@ -7,6 +7,7 @@ import com.smim.backend.domain.user.Provider;
 import com.smim.backend.domain.user.Role;
 import com.smim.backend.domain.user.User;
 import com.smim.backend.domain.user.UserRepository;
+import com.smim.backend.global.error.exception.BusinessException;
 import com.smim.backend.global.error.exception.InvalidUrlException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -43,6 +44,12 @@ class ArticleServiceTest {
 
     @Mock
     private VocabularyExtractorService vocabularyExtractorService;
+
+    @Mock
+    private ArticleExtractionService articleExtractionService;
+
+    @Mock
+    private ArticleDifficultyAnalyzer articleDifficultyAnalyzer;
 
     @Test
     @DisplayName("아티클 크롤링 및 저장 성공")
@@ -104,7 +111,7 @@ class ArticleServiceTest {
 
         // when & then
         assertThatThrownBy(() -> articleService.crawlAndSaveArticle(url, userId))
-            .isInstanceOf(IllegalArgumentException.class)
+            .isInstanceOf(BusinessException.class)
             .hasMessageContaining("사용자를 찾을 수 없습니다");
 
         verify(userRepository, times(1)).findById(userId);
